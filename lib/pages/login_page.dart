@@ -56,7 +56,7 @@ class LoginPage extends StatelessWidget {
                       ),
                       fillColor: Colors.grey,
                       filled: true,
-                      hintText: 'Password',
+                      hintText: 'Passwords',
                     ),
                   ),
                 ),
