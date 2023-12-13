@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "985188173946",
+    "project_id": "smartstash-5b839",
+    "storage_bucket": "smartstash-5b839.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:985188173946:android:70920875560ff95a5f53c3",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrJGmCdGaVaUz5nWR1W9VuIrvP7oq5-eU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
