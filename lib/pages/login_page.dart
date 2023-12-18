@@ -4,7 +4,8 @@ import 'package:flutter_application_1/pages/components/SquareTile.dart';
 import 'components/loginbutton.dart';
 
 class LoginPage extends StatefulWidget {
-  LoginPage({super.key});
+  Function()? onTap;
+  LoginPage({super.key, required this.onTap});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -13,20 +14,17 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool isPasswordVisible = false;
 
   void signIn() async {
     // Circular loading bar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            CircularProgressIndicator(),
-            Text("Signing in..."),
-          ],
-        ),
-        duration: Duration(minutes: 5), // Adjust the duration as needed
-      ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Center(
+          child: CircularProgressIndicator(),
+        );
+      },
     );
 
     try {
@@ -36,29 +34,29 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       // Stop the circular loading bar
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       // Stop the circular loading bar
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-      // Wrong email
-      if (e.code == 'user-not-found') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Incorrect Email'),
-          ),
-        );
-      }
-
-      // Wrong password
-      else if (e.code == 'wrong-password') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Incorrect Password'),
-          ),
-        );
-      }
+      Navigator.pop(context);
+      errorMessage(e.code);
     }
+  }
+
+  void errorMessage(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Center(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -72,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(height: 60), //spacer
-                SquareTile(ImagePath: 'lib/images/lockerlogo.jpg'),
+                Icon(Icons.lock,size: 80,),
 
                 SizedBox(height: 60), //spacer
 
@@ -102,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
                   padding: EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
                     controller: passwordController,
-                    obscureText: true,
+                    obscureText: !isPasswordVisible,
                     decoration: InputDecoration(
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
@@ -113,6 +111,18 @@ class _LoginPageState extends State<LoginPage> {
                       fillColor: Colors.white,
                       filled: true,
                       hintText: 'Password',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isPasswordVisible = !isPasswordVisible;
+                          });
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -180,11 +190,14 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('Not a member? '),
-                    Text(
-                      'Register Now',
-                      style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontWeight: FontWeight.bold),
+                    GestureDetector(
+                      onTap: widget.onTap,
+                      child: Text(
+                        'Register Now',
+                        style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
