@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/components/SquareTile.dart';
+import 'package:flutter_application_1/services/auth_service.dart';
 import 'components/loginbutton.dart';
 
 class LoginPage extends StatefulWidget {
@@ -174,13 +175,17 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     //google button
-                    SquareTile(ImagePath: 'lib/images/apple.png'),
+                    SquareTile(
+                      onTap: () => AuthService().signInWithGoogle(),
+                      ImagePath: 'lib/images/apple.png'),
 
                     SizedBox(
                       width: 20,
                     ),
 
-                    SquareTile(ImagePath: 'lib/images/googlelogo.png'),
+                    SquareTile(
+                      onTap: () => AuthService().signInWithGoogle(),
+                      ImagePath: 'lib/images/googlelogo.png'),
                   ],
                 ),
 

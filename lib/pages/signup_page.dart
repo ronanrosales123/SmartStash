@@ -1,10 +1,9 @@
 // ignore_for_file: prefer_const_constructors, prefer_interpolation_to_compose_strings, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/components/SquareTile.dart';
 import 'components/signupbutton.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';
+
 
 class SignUpPage extends StatefulWidget {
   void Function()? onTap;

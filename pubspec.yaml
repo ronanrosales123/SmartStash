@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
+  google_sign_in: ^6.1.6
 
 flutter:
   uses-material-design: true
