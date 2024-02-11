@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/pages/components/SquareTile.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
 import 'components/loginbutton.dart';
@@ -40,6 +41,29 @@ class _LoginPageState extends State<LoginPage> {
       // Stop the circular loading bar
       Navigator.pop(context);
       errorMessage(e.code);
+    }
+  }
+
+  Future<User?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleSignInAccount = await AuthService().signInWithGoogle();
+      if (googleSignInAccount == null) return null;
+
+      final GoogleSignInAuthentication googleSignInAuthentication =
+          await googleSignInAccount.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleSignInAuthentication.accessToken,
+        idToken: googleSignInAuthentication.idToken,
+      );
+
+      final UserCredential authResult = await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? user = authResult.user;
+
+      return user;
+    } catch (e) {
+      print("Google Sign-In Error: $e");
+      return null;
     }
   }
 
@@ -176,16 +200,31 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     //google button
                     SquareTile(
-                      onTap: () => AuthService().signInWithGoogle(),
-                      ImagePath: 'lib/images/apple.png'),
+                      onTap: () async {
+                        // Call signInWithGoogle method
+                        User? user = await signInWithGoogle();
+
+                        // Handle the signed-in user as needed
+                        if (user != null) {
+                          print("Google Sign-In Successful: ${user.displayName}");
+                        } else {
+                          print("Google Sign-In Failed");
+                        }
+                      },
+                      ImagePath: 'lib/images/googlelogo.png',
+                    ),
 
                     SizedBox(
                       width: 20,
                     ),
 
                     SquareTile(
-                      onTap: () => AuthService().signInWithGoogle(),
-                      ImagePath: 'lib/images/googlelogo.png'),
+                      onTap: () async {
+                        // Call signInWithApple method
+                        // ...
+                      },
+                      ImagePath: 'lib/images/apple.png',
+                    ),
                   ],
                 ),
 
