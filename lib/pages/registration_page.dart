@@ -16,36 +16,43 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   TextEditingController phoneNumberController = TextEditingController();
   TextEditingController trackingNumberController = TextEditingController();
+  int selectedLockerIndex = -1;
+  bool isLoading = false;
 
   void confirmRegistration() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+
     String phoneNumber = phoneNumberController.text;
     String trackingNumber = trackingNumberController.text;
 
-    if (phoneNumber.isEmpty || trackingNumber.isEmpty) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Error'),
-          content: Text('Please fill in all the fields.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-    return;
-  }
+    if (phoneNumber.isEmpty || trackingNumber.isEmpty || selectedLockerIndex == -1) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text('Please fill in all the fields and select a locker.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+      setState(() {
+        isLoading = false; // Stop loading
+      });
+      return;
+    }
 
-    // Validate if the phone number is in the correct format
     if (phoneNumber.length != 11 || !phoneNumber.startsWith('09')) {
-      // Handle invalid phone number format
-       showDialog(
+      showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
@@ -62,21 +69,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
           );
         },
       );
+      setState(() {
+        isLoading = false; // Stop loading
+      });
       return;
     }
 
-    // You can add more validations for the tracking number here if needed
-
-    // Add data to Firebase Firestore
     try {
       await FirebaseFirestore.instance.collection('registrations').add({
         'phoneNumber': phoneNumber,
         'trackingNumber': trackingNumber,
+        'lockerNumber': selectedLockerIndex + 1,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Confirmation successful
-      print('Registration successful');
+      await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
+        'locker${selectedLockerIndex + 1}': true,
+      });
+
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -86,7 +96,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
             actions: <Widget>[
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.of(context).pop(); // Go back to the homepage
                 },
                 child: Text('OK'),
               ),
@@ -95,9 +106,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         },
       );
     } catch (e) {
-      // Handle errors during registration
-      print('Error during registration: $e');
-      // Show a dialog or snackbar to inform the user about the error
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -116,6 +124,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
         },
       );
     }
+
+    setState(() {
+      isLoading = false; // Stop loading
+    });
   }
 
   @override
@@ -137,7 +149,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Phone Number input field
             TextField(
               controller: phoneNumberController,
               keyboardType: TextInputType.phone,
@@ -152,7 +163,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
             ),
             SizedBox(height: 16),
-            // Tracking Number input field
             TextField(
               controller: trackingNumberController,
               decoration: InputDecoration(
@@ -161,17 +171,135 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
             ),
             SizedBox(height: 32),
-            // Confirm Registration button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 primary: Colors.grey,
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
-              onPressed: confirmRegistration,
-              child: Text('Confirm Registration'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LockerSelectionPage(),
+                  ),
+                ).then((selectedLocker) {
+                  if (selectedLocker != null) {
+                    setState(() {
+                      selectedLockerIndex = selectedLocker;
+                    });
+                  }
+                });
+              },
+              child: Text('Select Locker'),
             ),
+            SizedBox(height: 16),
+            isLoading
+                ? Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.grey,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: selectedLockerIndex != -1 ? confirmRegistration : null,
+                    child: Text('Confirm Registration'),
+                  ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class LockerSelectionPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Select Locker'),
+        backgroundColor: Colors.grey,
+      ),
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').snapshots(),
+        builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+
+          if (snapshot.hasData && snapshot.data!.exists) {
+            Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
+            List<String> lockerNames = ['locker1', 'locker2', 'locker3', 'locker4', 'locker5', 'locker6'];
+            List<bool> lockerStatus = lockerNames.map((name) => data[name] as bool? ?? false).toList();
+
+            return GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 10.0,
+                crossAxisSpacing: 10.0,
+              ),
+              itemCount: lockerStatus.length,
+              itemBuilder: (context, index) {
+                bool isOccupied = lockerStatus[index];
+                return InkWell(
+                  onTap: () {
+                    if (!isOccupied) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Locker Selected'),
+                            content: Text('You selected Locker ${index + 1}.'),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop(); // Close the dialog
+                                  Navigator.pop(context, index); // Pass selected locker index back to previous screen
+                                },
+                                child: Text('OK'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Locker ${index + 1} is occupied.'),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isOccupied ? Colors.red : Colors.green,
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          } else {
+            return Center(
+              child: Text('No lockers available'),
+            );
+          }
+        },
       ),
     );
   }
