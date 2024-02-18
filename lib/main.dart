@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Smartstash/pages/auth_page.dart';
+import 'package:flutter_application_1/pages/auth_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

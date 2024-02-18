@@ -220,55 +220,56 @@ class LockerSelectionPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Select Locker'),
-        backgroundColor: Colors.grey[850],
+        backgroundColor: Colors.grey,
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(),
+            );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
           }
 
           if (snapshot.hasData && snapshot.data!.exists) {
             Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
-            List<String> lockerNames = ['locker1', 'locker2', 'locker3', 'locker4', 'locker5', 'locker6'];
+            List<String> lockerNames = ['locker1', 'locker2', 'locker3', 'locker4', 'locker5', 'locker6']; // Rearranged
             List<bool> lockerStatus = lockerNames.map((name) => data[name] as bool? ?? false).toList();
 
             return GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+                crossAxisCount: 2, // Two columns
                 mainAxisSpacing: 10.0,
                 crossAxisSpacing: 10.0,
               ),
               itemCount: lockerStatus.length,
               itemBuilder: (context, index) {
-                // Adjust the index for the desired locker number
-                int lockerNumber = index % 2 * 3 + index ~/ 2 + 1;
-                bool isOccupied = lockerStatus[lockerNumber - 1];
-
+                bool isOccupied = lockerStatus[index];
                 return Card(
-                  elevation: 5,
-                  color: isOccupied ? Colors.red[300] : Colors.green[300],
+                  elevation: 5, // Add shadow
+                  color: isOccupied ? Colors.red[300] : Colors.green[300], // Subtle shades
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                   child: InkWell(
                     onTap: () {
-                      if (!isOccupied) {
+                            if (!isOccupied) {
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: Text('Locker Selected'),
-                              content: Text('You selected Locker $lockerNumber.'),
+                              content: Text('You selected Locker ${index + 1}.'),
                               actions: <Widget>[
                                 TextButton(
                                   onPressed: () {
                                     Navigator.of(context).pop(); // Close the dialog
-                                    Navigator.pop(context, lockerNumber); // Pass selected locker number back
+                                    Navigator.pop(context, index); // Pass selected locker index back to previous screen
                                   },
                                   child: Text('OK'),
                                 ),
@@ -279,12 +280,12 @@ class LockerSelectionPage extends StatelessWidget {
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Locker $lockerNumber is occupied.'),
+                            content: Text('Locker ${index + 1} is occupied.'),
                           ),
                         );
                       }
                     },
-                    borderRadius: BorderRadius.circular(10.0),
+                    borderRadius: BorderRadius.circular(10.0), // Match the border radius of the Card
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -295,7 +296,7 @@ class LockerSelectionPage extends StatelessWidget {
                             size: 36.0,
                           ),
                           Text(
-                            'Locker $lockerNumber',
+                            'Locker ${index + 1}',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -310,7 +311,9 @@ class LockerSelectionPage extends StatelessWidget {
               },
             );
           } else {
-            return Center(child: Text('No lockers available'));
+            return Center(
+              child: Text('No lockers available'),
+            );
           }
         },
       ),
