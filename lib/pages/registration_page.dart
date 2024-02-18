@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -26,6 +27,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
     String phoneNumber = phoneNumberController.text;
     String trackingNumber = trackingNumberController.text;
+    User? userId = FirebaseAuth.instance.currentUser;
+
 
     if (phoneNumber.isEmpty || trackingNumber.isEmpty || selectedLockerIndex == -1) {
       showDialog(
@@ -77,6 +80,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
     try {
       await FirebaseFirestore.instance.collection('registrations').add({
+        'userId': userId!.uid, // Add the user ID to the registration data
         'phoneNumber': phoneNumber,
         'trackingNumber': trackingNumber,
         'lockerNumber': selectedLockerIndex + 1,
@@ -135,7 +139,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Registration'),
-        backgroundColor: Colors.grey,
+        backgroundColor: Colors.grey[850],
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -216,20 +220,16 @@ class LockerSelectionPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Select Locker'),
-        backgroundColor: Colors.grey,
+        backgroundColor: Colors.grey[850],
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(),
-            );
+            return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           if (snapshot.hasData && snapshot.data!.exists) {
@@ -239,55 +239,70 @@ class LockerSelectionPage extends StatelessWidget {
 
             return GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 2,
                 mainAxisSpacing: 10.0,
                 crossAxisSpacing: 10.0,
               ),
               itemCount: lockerStatus.length,
               itemBuilder: (context, index) {
-                bool isOccupied = lockerStatus[index];
-                return InkWell(
-                  onTap: () {
-                    if (!isOccupied) {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Locker Selected'),
-                            content: Text('You selected Locker ${index + 1}.'),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(); // Close the dialog
-                                  Navigator.pop(context, index); // Pass selected locker index back to previous screen
-                                },
-                                child: Text('OK'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Locker ${index + 1} is occupied.'),
-                        ),
-                      );
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isOccupied ? Colors.red : Colors.green,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
+                // Adjust the index for the desired locker number
+                int lockerNumber = index % 2 * 3 + index ~/ 2 + 1;
+                bool isOccupied = lockerStatus[lockerNumber - 1];
+
+                return Card(
+                  elevation: 5,
+                  color: isOccupied ? Colors.red[300] : Colors.green[300],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      if (!isOccupied) {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Locker Selected'),
+                              content: Text('You selected Locker $lockerNumber.'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(); // Close the dialog
+                                    Navigator.pop(context, lockerNumber); // Pass selected locker number back
+                                  },
+                                  child: Text('OK'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Locker $lockerNumber is occupied.'),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10.0),
                     child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18.0,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isOccupied ? Icons.lock : Icons.lock_open,
+                            color: Colors.white,
+                            size: 36.0,
+                          ),
+                          Text(
+                            'Locker $lockerNumber',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18.0,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -295,12 +310,11 @@ class LockerSelectionPage extends StatelessWidget {
               },
             );
           } else {
-            return Center(
-              child: Text('No lockers available'),
-            );
+            return Center(child: Text('No lockers available'));
           }
         },
       ),
     );
   }
 }
+
