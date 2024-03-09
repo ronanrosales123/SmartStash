@@ -85,6 +85,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         'trackingNumber': trackingNumber,
         'lockerNumber': selectedLockerIndex + 1,
         'timestamp': FieldValue.serverTimestamp(),
+        'status': false,
       });
 
       await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
