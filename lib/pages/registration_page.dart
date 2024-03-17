@@ -80,6 +80,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
+    bool confirm = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirm Registration'),
+        content: Text('Are you sure the details are correct?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Yes'),
+          ),
+        ],
+      );
+    },
+  ) ?? false;
+
+  if (!confirm) return;
+
+  setState(() {
+    isLoading = true; // Start loading
+  });
+
     try {
       await FirebaseFirestore.instance.collection('registrations').add({
         'userId': userId!.uid, // Add the user ID to the registration data

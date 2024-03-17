@@ -58,11 +58,10 @@ class TransactionStatusPage extends StatelessWidget {
                           ));
                         },
                       ),
-                     PopupMenuItem(
+                    PopupMenuItem(
                         value: 'cancel',
                         child: Text('Cancel'),
                         onTap: () async {
-                          Navigator.pop(context); // Close the menu
                           bool? confirmCancel = await showDialog<bool>(
                             context: context,
                             builder: (BuildContext context) {
@@ -84,6 +83,10 @@ class TransactionStatusPage extends StatelessWidget {
                           );
 
                           if (confirmCancel == true) {
+                            await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
+                              'locker$lockerNumber': false,
+                            });
+
                             // Logic to delete the transaction
                             await FirebaseFirestore.instance
                                 .collection('registrations')
