@@ -47,44 +47,43 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   final Set<String> notifiedDocuments = Set<String>();
 
-  @override
-  void initState() {
-    super.initState();
+ @override
+void initState() {
+  super.initState();
 
-    // Set up notification listeners
-    AwesomeNotifications().setListeners(
-      onActionReceivedMethod: NotificationController.onActionReceivedMethod,
-      onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
-      onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
-      onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
-    );
+  // Set up notification listeners
+  AwesomeNotifications().setListeners(
+    onActionReceivedMethod: NotificationController.onActionReceivedMethod,
+    onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
+    onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
+    onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
+  );
 
-    // Listen for changes in the registrations collection
-    FirebaseFirestore.instance
-        .collection('registrations')
-        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-        .snapshots()
-        .listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.modified &&
-            change.doc['status'] == true &&
-            !notifiedDocuments.contains(change.doc.id)) {
-          // Trigger a notification
-          AwesomeNotifications().createNotification(
-            content: NotificationContent(
-              id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-              channelKey: 'Basic Notification',
-              title: 'Package Delivered',
-              body: 'Your package has been delivered to the locker.',
-            ),
-          );
-          // Add the document ID to the set of notified documents
-          notifiedDocuments.add(change.doc.id);
-        }
+  // Listen for changes in the registrations collection
+  FirebaseFirestore.instance
+      .collection('registrations')
+      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+      .snapshots()
+      .listen((snapshot) {
+    for (var change in snapshot.docChanges) {
+      if (change.type == DocumentChangeType.modified &&
+          change.doc['status'] == true &&
+          !notifiedDocuments.contains(change.doc.id)) {
+        // Trigger a notification
+        AwesomeNotifications().createNotification(
+          content: NotificationContent(
+            id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+            channelKey: 'Basic Notification',
+            title: 'Package Delivered',
+            body: 'Your package has been delivered to the locker.',
+          ),
+        );
+        // Add the document ID to the set of notified documents
+        notifiedDocuments.add(change.doc.id);
       }
-    });
-  }
-
+    }
+  });
+}
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(

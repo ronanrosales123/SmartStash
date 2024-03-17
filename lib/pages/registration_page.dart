@@ -19,6 +19,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   TextEditingController trackingNumberController = TextEditingController();
   int selectedLockerIndex = -1;
   bool isLoading = false;
+  bool isCOD = false; // Initial value for the COD toggle
+
 
   void confirmRegistration() async {
     setState(() {
@@ -28,7 +30,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     String phoneNumber = phoneNumberController.text;
     String trackingNumber = trackingNumberController.text;
     User? userId = FirebaseAuth.instance.currentUser;
-
+    
 
     if (phoneNumber.isEmpty || trackingNumber.isEmpty || selectedLockerIndex == -1) {
       showDialog(
@@ -86,6 +88,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         'lockerNumber': selectedLockerIndex + 1,
         'timestamp': FieldValue.serverTimestamp(),
         'status': false,
+        'cod': isCOD, // Add the COD field to the registration document
       });
 
       await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
@@ -175,7 +178,20 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 prefixIcon: Icon(Icons.assignment),
               ),
             ),
-            SizedBox(height: 32),
+            SizedBox(height: 16),
+
+            SwitchListTile(
+              title: Text('Cash on Delivery'),
+              value: isCOD,
+              onChanged: (bool value) {
+                setState(() {
+                  isCOD = value;
+                });
+              },
+              secondary: Icon(isCOD ? Icons.money : Icons.money_off),
+            ),
+
+            SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 primary: Colors.grey,
@@ -198,6 +214,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               child: Text('Select Locker'),
             ),
             SizedBox(height: 16),
+
             isLoading
                 ? Center(child: CircularProgressIndicator())
                 : ElevatedButton(
@@ -278,11 +295,21 @@ class LockerSelectionPage extends StatelessWidget {
                             );
                           },
                         );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Locker ${index + 1} is occupied.'),
-                          ),
+                      }else {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Locker Unavailable'),
+                              content: Text('Locker ${index + 1} is occupied. Please choose a different locker.'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(), // Dismiss the dialog
+                                  child: Text('OK'),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       }
                     },
