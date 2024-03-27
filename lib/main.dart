@@ -60,29 +60,34 @@ void initState() {
   );
 
   // Listen for changes in the registrations collection
-  FirebaseFirestore.instance
-      .collection('registrations')
-      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-      .snapshots()
-      .listen((snapshot) {
+FirebaseFirestore.instance
+  .collection('registrations')
+  .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+  .snapshots()
+  .listen((snapshot) {
     for (var change in snapshot.docChanges) {
       if (change.type == DocumentChangeType.modified &&
           change.doc['status'] == true &&
           !notifiedDocuments.contains(change.doc.id)) {
-        // Trigger a notification
+        
+        // Assuming 'lockerNumber' is a field in your document
+        int lockerNumber = change.doc['lockerNumber'] ?? -1;  // -1 or some error value
+
+        // Trigger a notification including locker number
         AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
             channelKey: 'Basic Notification',
             title: 'Package Delivered',
-            body: 'Your package has been delivered to the locker.',
+            body: 'Your package has been delivered to Locker $lockerNumber.',
           ),
         );
+
         // Add the document ID to the set of notified documents
         notifiedDocuments.add(change.doc.id);
       }
     }
-  });
+});
 }
   @override
   Widget build(BuildContext context) {
