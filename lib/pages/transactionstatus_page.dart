@@ -8,6 +8,7 @@ import 'dart:math';
 import 'edit_page.dart';
 
 class TransactionStatusPage extends StatelessWidget {
+  
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -225,32 +226,66 @@ showDialog(
 }
 
 
-  void depositMoney(BuildContext context, int lockerNumber, String docId) {
-    String field = 'isOpen$lockerNumber';
-    FirebaseFirestore.instance.collection('lockerstatus').doc('OpenLocker').update({
-      field: true,
-    }).then((_) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Locker Opened'),
-          content: Text('The locker is now open. Please deposit the cash and close the locker.'),
+  void depositMoney(BuildContext context, int lockerNumber, String docId) async {
+    // Show a loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text("Generating Deposit Token..."),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // Generate a unique deposit token
+    String depositToken = generateClaimToken();
+
+    // Update the document with the deposit token
+    await FirebaseFirestore.instance.collection('registrations').doc(docId).update({
+      'depositToken': depositToken,
+    });
+
+    // Dismiss the loading dialog
+    Navigator.of(context).pop();
+
+    // Display the QR code containing the deposit token
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Deposit QR Code'),
+          content: SizedBox(
+            width: 200,
+            height: 200,
+            child: QrImageView(
+              data: depositToken,
+              version: QrVersions.auto,
+              size: 200.0,
+            ),
+          ),
           actions: <Widget>[
             TextButton(
-              child: Text('Money Deposited'),
+              child: Text('Close'),
               onPressed: () {
-                FirebaseFirestore.instance.collection('lockerstatus').doc('OpenLocker').update({
-                  field: false,
-                });
                 Navigator.of(context).pop();
               },
             ),
           ],
-        ),
-      );
-    });
+        );
+      },
+    );
   }
-
 
   String generateClaimToken() {
     const length = 10;

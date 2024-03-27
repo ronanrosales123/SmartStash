@@ -18,69 +18,48 @@ class _RegistrationPageState extends State<RegistrationPage> {
   TextEditingController phoneNumberController = TextEditingController();
   TextEditingController trackingNumberController = TextEditingController();
   int selectedLockerIndex = -1;
-  bool isLoading = false;
   bool isCOD = false; // Initial value for the COD toggle
 
-
-  void confirmRegistration() async {
-    setState(() {
-      isLoading = true; // Start loading
-    });
-
-    String phoneNumber = phoneNumberController.text;
-    String trackingNumber = trackingNumberController.text;
-    User? userId = FirebaseAuth.instance.currentUser;
-    
-
-    if (phoneNumber.isEmpty || trackingNumber.isEmpty || selectedLockerIndex == -1) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('Please fill in all the fields and select a locker.'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
+// Helper method to show error dialog
+void _showErrorDialog(String message) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close error dialog
+            },
+            child: Text('OK'),
+          ),
+        ],
       );
-      setState(() {
-        isLoading = false; // Stop loading
-      });
-      return;
-    }
+    },
+  );
+}
 
-    if (phoneNumber.length != 11 || !phoneNumber.startsWith('09')) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('Wrong phone number format.'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-      setState(() {
-        isLoading = false; // Stop loading
-      });
-      return;
-    }
+void confirmRegistration() async {
+  String phoneNumber = phoneNumberController.text;
+  String trackingNumber = trackingNumberController.text;
+  User? user = FirebaseAuth.instance.currentUser;
 
-    bool confirm = await showDialog<bool>(
+  // Check for empty fields and locker selection
+  if (phoneNumber.isEmpty || trackingNumber.isEmpty || selectedLockerIndex == -1) {
+    _showErrorDialog('Please fill in all the fields and select a locker.');
+    return;
+  }
+
+  // Check phone number format
+  if (phoneNumber.length != 11 || !phoneNumber.startsWith('09')) {
+    _showErrorDialog('Wrong phone number format.');
+    return;
+  }
+
+  // Confirmation dialog
+  bool confirm = await showDialog<bool>(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
@@ -100,69 +79,56 @@ class _RegistrationPageState extends State<RegistrationPage> {
     },
   ) ?? false;
 
+  // If the user does not confirm, just return
   if (!confirm) return;
 
-  setState(() {
-    isLoading = true; // Start loading
-  });
+  // Show loading indicator after confirmation
+  showLoadingIndicator(context, isLoading: true);
 
-    try {
-      await FirebaseFirestore.instance.collection('registrations').add({
-        'userId': userId!.uid, // Add the user ID to the registration data
-        'phoneNumber': phoneNumber,
-        'trackingNumber': trackingNumber,
-        'lockerNumber': selectedLockerIndex + 1,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': false,
-        'cod': isCOD, // Add the COD field to the registration document
-      });
-
-      await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
-        'locker${selectedLockerIndex + 1}': true,
-      });
-
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Success'),
-            content: Text('Registration Successful.'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  Navigator.of(context).pop(); // Go back to the homepage
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('Failed to register. Please try again.'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    setState(() {
-      isLoading = false; // Stop loading
+  try {
+    // Perform registration
+    await FirebaseFirestore.instance.collection('registrations').add({
+      'userId': user!.uid,
+      'phoneNumber': phoneNumber,
+      'trackingNumber': trackingNumber,
+      'lockerNumber': selectedLockerIndex + 1,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': false,
+      'cod': isCOD,
     });
+
+    await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
+      'locker${selectedLockerIndex + 1}': true,
+    });
+
+    // Hide loading indicator before showing the success dialog
+    showLoadingIndicator(context, isLoading: false);
+
+    // Success dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text('Registration Successful.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close success dialog
+                Navigator.of(context).pop(); // Go back to the previous screen
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  } catch (e) {
+    // Hide loading indicator before showing the error dialog
+    showLoadingIndicator(context, isLoading: false);
+    _showErrorDialog('Failed to register. Please try again.');
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -241,16 +207,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
             ),
             SizedBox(height: 16),
 
-            isLoading
-                ? Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.grey,
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: selectedLockerIndex != -1 ? confirmRegistration : null,
-                    child: Text('Confirm Registration'),
-                  ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                primary: Colors.grey,
+                padding: EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: selectedLockerIndex != -1 ? confirmRegistration : null,
+              child: Text('Confirm Registration'),
+            ),
           ],
         ),
       ),
@@ -372,6 +336,26 @@ class LockerSelectionPage extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+// Method to control the loading indicator
+void showLoadingIndicator(BuildContext context, {required bool isLoading}) {
+  if (isLoading) {
+    // Showing the loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  } else {
+    // Dismissing the loading indicator if it's shown
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 }
 
