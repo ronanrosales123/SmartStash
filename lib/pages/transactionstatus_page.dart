@@ -7,9 +7,43 @@ import 'dart:math';
 
 import 'edit_page.dart';
 
-class TransactionStatusPage extends StatelessWidget {
+class TransactionStatusPage extends StatefulWidget {
   
   @override
+  State<TransactionStatusPage> createState() => _TransactionStatusPageState();
+}
+
+class _TransactionStatusPageState extends State<TransactionStatusPage> {
+  
+  @override
+void initState() {
+  super.initState();
+
+  // Listen to changes in the registrations collection for this user
+  FirebaseFirestore.instance
+      .collection('registrations')
+      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+      .snapshots()
+      .listen((querySnapshot) async {
+    for (var doc in querySnapshot.docs) {
+      bool currentStatus = doc['status'] ?? false;
+      
+      // Check if status is true and timeIn is not already set
+      if (currentStatus && !doc.data().containsKey('timeIn')) {
+        try {
+          // Update timeIn with the server timestamp
+          await FirebaseFirestore.instance.collection('registrations').doc(doc.id).update({
+            'timeIn': FieldValue.serverTimestamp(),
+          });
+          print("timeIn field successfully created for document ID: ${doc.id}");
+        } catch (error) {
+          print("Error creating timeIn field: $error");
+        }
+      }
+    }
+  });
+}
+  
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -115,6 +149,8 @@ class TransactionStatusPage extends StatelessWidget {
                       Text('Status: ${isLockerOccupied ? "In Locker" : "Not in Locker"}'),
                       Text('COD: ${isCOD ? "Yes" : "No"}'),
                       Text('Date: $formattedDate'),
+                      if (isLockerOccupied && doc['timeIn'] != null)
+                       Text('Time Delivered: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
                       SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -147,7 +183,7 @@ class TransactionStatusPage extends StatelessWidget {
       ),
     );
   }
-  }
+}
 
 void claimPackage(BuildContext context, String docId, int lockerNumber) async {
   // Show a loading dialog
@@ -199,8 +235,18 @@ showDialog(
         ),
         actions: <Widget>[
           TextButton(
-            child: Text('I have collected the package'),
+            child: Text('Package Collected'),
             onPressed: () async {
+              // Fetch the document data first
+              DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+                  .collection('registrations')
+                  .doc(docId)
+                  .get();
+                  
+               // Save the data to the 'logs' collection
+              await FirebaseFirestore.instance.collection('logs').add(docSnapshot.data() as Map<String, dynamic>);
+
+              
               // Update the vacancy status of the specific locker
               await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
                 'locker$lockerNumber': false, // Dynamically update the correct field
@@ -300,4 +346,4 @@ showDialog(
     return buffer.toString();
   }
 
-
+ 

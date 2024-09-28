@@ -1,8 +1,8 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/auth_page.dart';
+import 'package:SmartStash/pages/auth_page.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_application_1/pages/components/notification_controller.dart';
+import 'package:SmartStash/pages/components/notification_controller.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

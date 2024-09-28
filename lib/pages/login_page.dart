@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_application_1/pages/components/SquareTile.dart';
-import 'package:flutter_application_1/services/auth_service.dart';
+import 'package:SmartStash/pages/components/SquareTile.dart';
+import 'package:SmartStash/services/auth_service.dart';
 import 'components/loginbutton.dart';
 
 class LoginPage extends StatefulWidget {
