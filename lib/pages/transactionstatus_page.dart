@@ -15,35 +15,6 @@ class TransactionStatusPage extends StatefulWidget {
 
 class _TransactionStatusPageState extends State<TransactionStatusPage> {
   
-  @override
-void initState() {
-  super.initState();
-
-  // Listen to changes in the registrations collection for this user
-  FirebaseFirestore.instance
-      .collection('registrations')
-      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-      .snapshots()
-      .listen((querySnapshot) async {
-    for (var doc in querySnapshot.docs) {
-      bool currentStatus = doc['status'] ?? false;
-      
-      // Check if status is true and timeIn is not already set
-      if (currentStatus && !doc.data().containsKey('timeIn')) {
-        try {
-          // Update timeIn with the server timestamp
-          await FirebaseFirestore.instance.collection('registrations').doc(doc.id).update({
-            'timeIn': FieldValue.serverTimestamp(),
-          });
-          print("timeIn field successfully created for document ID: ${doc.id}");
-        } catch (error) {
-          print("Error creating timeIn field: $error");
-        }
-      }
-    }
-  });
-}
-  
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -120,8 +91,15 @@ void initState() {
                           if (confirmCancel == true) {
                             await FirebaseFirestore.instance.collection('lockerstatus').doc('vacancy').update({
                               'locker$lockerNumber': false,
-                            });
+                            });  
 
+                            DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+                            .collection('registrations')
+                            .doc(doc.id)
+                            .get();
+                            // Save the data to the 'logs' collection
+                            await FirebaseFirestore.instance.collection('logs').add(docSnapshot.data() as Map<String, dynamic>);
+                 
                             // Logic to delete the transaction
                             await FirebaseFirestore.instance
                                 .collection('registrations')
@@ -150,7 +128,7 @@ void initState() {
                       Text('COD: ${isCOD ? "Yes" : "No"}'),
                       Text('Date: $formattedDate'),
                       if (isLockerOccupied && doc['timeIn'] != null)
-                       Text('Time Delivered: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
+                       Text('Time Deposited: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
                       SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,

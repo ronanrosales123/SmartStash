@@ -46,8 +46,7 @@ class TransactionHistoryPage extends StatelessWidget {
               var doc = snapshot.data!.docs[index];
               var formattedDate = DateFormat('yyyy-MM-dd – kk:mm')
                   .format(doc['timestamp'].toDate());
-              var formattedtimeIn = DateFormat('yyyy-MM-dd – kk:mm')
-                  .format(doc['timeIn'].toDate());
+              
 
               bool isLockerOccupied = doc['status'] ?? false;
               bool isCOD = doc['cod'] ?? false;
@@ -112,10 +111,11 @@ class TransactionHistoryPage extends StatelessWidget {
                       Text('Phone Number: ${doc['phoneNumber']}'),
                       Text('Tracking Number: ${doc['trackingNumber']}'),
                       Text(
-                          'Status: ${isLockerOccupied ? "In Locker" : "Not in Locker"}'),
+                          'Status: ${isLockerOccupied ? "Completed" : "Cancelled"}'),
                       Text('COD: ${isCOD ? "Yes" : "No"}'),
                       Text('Date: $formattedDate'),
-                      Text('Time Delivered: $formattedtimeIn'),
+                      if(isLockerOccupied==true)
+                        Text('Time Deposited: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
                     ],
                   ),
                 ),
@@ -188,7 +188,7 @@ void confirmDeleteLogs(BuildContext context) async {
           return AlertDialog(
             title: Text('Confirm Deletion'),
             content: Text(
-                'Are you sure you want to delete all logs? This action cannot be undone.'),
+                'Are you sure you want to delete all? This action cannot be undone.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Cancel'),

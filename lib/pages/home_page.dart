@@ -55,10 +55,11 @@ class HomePage extends StatelessWidget {
               CrossAxisAlignment.stretch, // Buttons stretch to full width
           children: <Widget>[
             // Your app logo or branding image here
-            Icon(
-              Icons.lock,
-              size: 120,
-            ),
+         Image.asset(
+           'lib/images/your_logo.png',
+            width: 300, // Adjust size as needed
+            height: 300,
+          ),
             SizedBox(height: 48), // More space between the logo and buttons
             // Main menu options with full-width buttons
             ElevatedButton(
