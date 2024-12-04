@@ -1,12 +1,16 @@
+import 'package:SmartStash/pages/forgetpassword_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:SmartStash/pages/components/SquareTile.dart';
 import 'package:SmartStash/services/auth_service.dart';
 import 'components/loginbutton.dart';
+import 'forgetpassword_page.dart'; // Import the ForgotPasswordPage file
+import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
-  Function()? onTap;
+  final Function()? onTap;
+
   LoginPage({super.key, required this.onTap});
 
   @override
@@ -30,13 +34,30 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // Attempt to sign in
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
 
-      // Stop the circular loading bar
-      Navigator.pop(context);
+      User? user = userCredential.user;
+
+      // Check if the email is verified
+      if (user != null && user.emailVerified) {
+        // Stop the circular loading bar
+        Navigator.pop(context);
+        // Navigate to the home page or the next page in your app
+        Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),  // Use pushReplacement with HomePage widget
+              );
+      } else {
+        // Stop the circular loading bar
+        Navigator.pop(context);
+        // If the email is not verified, show an error message
+        errorMessage('Please verify your email before logging in.');
+      }
     } on FirebaseAuthException catch (e) {
       // Stop the circular loading bar
       Navigator.pop(context);
@@ -46,7 +67,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<User?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleSignInAccount = await AuthService().signInWithGoogle();
+      final GoogleSignInAccount? googleSignInAccount =
+          await AuthService().signInWithGoogle();
       if (googleSignInAccount == null) return null;
 
       final GoogleSignInAuthentication googleSignInAuthentication =
@@ -57,10 +79,17 @@ class _LoginPageState extends State<LoginPage> {
         idToken: googleSignInAuthentication.idToken,
       );
 
-      final UserCredential authResult = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential authResult =
+          await FirebaseAuth.instance.signInWithCredential(credential);
       final User? user = authResult.user;
 
-      return user;
+      // Check if the email is verified
+      if (user != null && user.emailVerified) {
+        return user;
+      } else {
+        errorMessage('Please verify your email before logging in with Google.');
+        return null;
+      }
     } catch (e) {
       print("Google Sign-In Error: $e");
       return null;
@@ -94,13 +123,13 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 60), //spacer
-                Icon(Icons.lock,size: 80,),
+                SizedBox(height: 60), // Spacer
+                Icon(Icons.lock, size: 80),
 
-                SizedBox(height: 60), //spacer
+                SizedBox(height: 60), // Spacer
 
                 Padding(
-                  //UserName
+                  // Email
                   padding: EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
                     controller: emailController,
@@ -118,10 +147,10 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                SizedBox(height: 10), //spacer
+                SizedBox(height: 10), // Spacer
 
                 Padding(
-                  //Password
+                  // Password
                   padding: EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
                     controller: passwordController,
@@ -152,28 +181,44 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                SizedBox(height: 10), //spacer
+                SizedBox(height: 10), // Spacer
 
+                // Make the "Forgot Password?" text clickable
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('Forgot Password?'),
-                    ],
+                  child: GestureDetector(
+                    onTap: () {
+                      // Navigate to ForgotPasswordPage when tapped
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ForgotPasswordPage()),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Forgot Password?',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent), // Optional styling
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                SizedBox(height: 10), //spacer
+                SizedBox(height: 10), // Spacer
 
-                //Sign in Button
+                // Sign in Button
                 SignInButton(
                   onTap: signIn,
                 ),
 
-                SizedBox(height: 30), //spacer
+                SizedBox(height: 30), // Spacer
 
-                //or Continue with text
+                // Or Continue with text
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: Row(
@@ -192,13 +237,13 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                //Logos
+                // Logos
                 SizedBox(height: 40),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    //google button
+                    // Google button
                     SquareTile(
                       onTap: () async {
                         // Call signInWithGoogle method
@@ -206,7 +251,9 @@ class _LoginPageState extends State<LoginPage> {
 
                         // Handle the signed-in user as needed
                         if (user != null) {
-                          print("Google Sign-In Successful: ${user.displayName}");
+                          print(
+                              "Google Sign-In Successful: ${user.displayName}");
+                          Navigator.pushReplacementNamed(context, '/homepage');
                         } else {
                           print("Google Sign-In Failed");
                         }
@@ -214,9 +261,7 @@ class _LoginPageState extends State<LoginPage> {
                       ImagePath: 'lib/images/googlelogo.png',
                     ),
 
-                    SizedBox(
-                      width: 20,
-                    ),
+                    SizedBox(width: 20),
 
                     SquareTile(
                       onTap: () async {

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'components/signupbutton.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'EmailVerification_Page.dart';
 
 
 class SignUpPage extends StatefulWidget {
@@ -19,54 +20,59 @@ class _SignUpPageState extends State<SignUpPage> {
   final confirmpasswordController = TextEditingController();
   bool isPasswordVisible = false;
 
-  void register() async {
-    // Circular loading bar
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Center(
-          child: CircularProgressIndicator(),
-        );
-      },
-    );
+void register() async {
+ // Show a loading dialog
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Center(
+        child: CircularProgressIndicator(),
+      );
+    },
+  );
 
-    try {
-      if (passwordController.text == confirmpasswordController.text) {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: emailController.text,
-          password: passwordController.text,
-        );
 
-        // Stop the circular loading bar
-        Navigator.pop(context);
-        
-      // Show a success message using a SnackBar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Account created successfully!'),
-          duration: Duration(seconds: 3), // Adjust the duration as needed
-          action: SnackBarAction(
-            label: 'OK',
-            onPressed: () {
-              // Handle the action, if needed
-            },
-          ),
-        ),
+  try {
+    if (passwordController.text == confirmpasswordController.text) {
+      // Create user
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
       );
 
-      } else {
-        // Stop the circular loading bar
-        Navigator.pop(context);
+      // Send verification email
+      await userCredential.user?.sendEmailVerification();
 
-        // Error message for passwords not matching
-        errorMessage("Passwords don't match");
-      }
-    } on FirebaseAuthException catch (e) {
       // Stop the circular loading bar
       Navigator.pop(context);
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => EmailVerificationPage()),
+      );
+
+    } else {
+      // Stop the circular loading bar
+      Navigator.pop(context);
+
+      // Error message for passwords not matching
+      errorMessage("Passwords don't match");
+    }
+  } on FirebaseAuthException catch (e) {
+    // Stop the circular loading bar
+    Navigator.pop(context);
+
+    if (e.code == 'email-already-in-use') {
+      // Handle user already exists
+      errorMessage("User already exists. Please log in.");
+    } else {
+      // Handle other errors
       errorMessage(e.code);
     }
   }
+}
+
+
 
   void errorMessage(String message) {
     showDialog(

@@ -1,12 +1,7 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'dart:math';
-import 'edit_page.dart';
 
 class TransactionHistoryPage extends StatelessWidget {
   @override
@@ -46,11 +41,11 @@ class TransactionHistoryPage extends StatelessWidget {
               var doc = snapshot.data!.docs[index];
               var formattedDate = DateFormat('yyyy-MM-dd – kk:mm')
                   .format(doc['timestamp'].toDate());
-              
 
               bool isLockerOccupied = doc['status'] ?? false;
               bool isCOD = doc['cod'] ?? false;
               int lockerNumber = doc['lockerNumber'];
+              bool isComplete = doc['completeFlag'] ?? false;
 
               return InkWell(
                 onLongPress: () {
@@ -107,15 +102,16 @@ class TransactionHistoryPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Locker: $lockerNumber'),
+                      if (isComplete == false)
+                        Text('Locker: $lockerNumber'),
                       Text('Phone Number: ${doc['phoneNumber']}'),
                       Text('Tracking Number: ${doc['trackingNumber']}'),
-                      Text(
-                          'Status: ${isLockerOccupied ? "Completed" : "Cancelled"}'),
+                      Text('Status: ${isComplete ? "Completed" : "Cancelled"}'),
                       Text('COD: ${isCOD ? "Yes" : "No"}'),
                       Text('Date: $formattedDate'),
-                      if(isLockerOccupied==true)
-                        Text('Time Deposited: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
+                      if (isComplete == true)
+                        Text(
+                            'Time Deposited: ${DateFormat('yyyy-MM-dd – kk:mm').format(doc['timeIn'].toDate())}'),
                     ],
                   ),
                 ),
